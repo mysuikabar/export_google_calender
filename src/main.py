@@ -21,8 +21,15 @@ def main(year, month):
         event_categories=event_categories,
         calender_id=calender_id,
     )
-    df = exporter.export_formatted_events_dataframe()
-    df.write_csv(Path(__file__).parent / "output/formatted_event_dataframe.csv")
+    formatted_events_df = exporter.export_formatted_events_dataframe()
+    events_without_category_df = exporter.export_events_without_category_dataframe()
+
+    formatted_events_df.write_csv(
+        Path(__file__).parent / "output/formatted_events_dataframe.csv"
+    )
+    events_without_category_df.write_csv(
+        Path(__file__).parent / "output/events_without_category_df.csv"
+    )
 
 
 if __name__ == "__main__":

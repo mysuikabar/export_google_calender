@@ -136,3 +136,17 @@ class GoogleCalenderExporter:
         )
 
         return df
+
+    def export_events_without_category_dataframe(self):
+        """
+        カテゴリが紐づかなかったイベントに対して、各イベントとその所要時間をまとめたデータフレームを出力する
+        """
+        df = self.export_events_dataframe()
+        df = df.filter(pl.col("category") == "others").select(
+            pl.col("date"),
+            pl.col("event"),
+            (pl.col("duration") + pl.lit(datetime(2000, 1, 1))).dt.strftime(
+                "%H:%M"
+            ),  # pl.Durationではフォーマットできないのでpl.Datetimeに直す
+        )
+        return df
