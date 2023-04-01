@@ -36,6 +36,19 @@ class GoogleCalenderExporter:
             year, month = self.year + 1, 1
         return datetime(year, month, 1, tzinfo=timezone.utc)
 
+    def event_categories_df(self) -> pl.DataFrame:
+        """
+        イベントとカテゴリーを対応させた辞書をデータフレームの形に整形する
+        """
+        df = pl.DataFrame(schema={"event": pl.Utf8, "category": pl.Utf8})
+
+        for category, events in self.event_categories.items():
+            for event in events:
+                tmp = pl.DataFrame({"event": event, "category": category})
+                df = df.vstack(tmp)
+
+        return df
+
     def get_calender_events(self) -> list:
         """
         指定された年月のカレンダーの情報を取得する
@@ -64,10 +77,10 @@ class GoogleCalenderExporter:
 
     def export_events_dataframe(self) -> pl.DataFrame:
         """
-        各イベントとその所要時間をまとめたデータフレームを出力する
+        各イベントに対し、対応するカテゴリとその所要時間をまとめたデータフレームを出力する
         """
         events = self.get_calender_events()
-        df_events = pl.DataFrame(
+        df = pl.DataFrame(
             schema={"date": pl.Date, "duration": pl.Duration, "event": pl.Utf8}
         )
 
@@ -84,22 +97,20 @@ class GoogleCalenderExporter:
                     "event": event.get("summary", "No title"),
                 }
             )
-            df_events = df_events.vstack(tmp)
+            df = df.vstack(tmp)
 
-        return df_events
+        # 各イベントに対応するカテゴリを紐づける
+        event_categories_df = self.event_categories_df()
+        df = df.join(event_categories_df, on="event", how="left").with_columns(
+            pl.col("category").fill_null("others")
+        )
 
-    def export_formatted_events_dataframe(self):
+        return df
+
+    def export_formatted_events_dataframe(self) -> pl.DataFrame:
         """
         各カテゴリごとに対応するイベントの所要時間の合計を日単位でまとめたデータフレームを出力する
         """
-
-        # イベント名に対応するカテゴリを返す関数
-        def event_map_category(summary: dict) -> str:
-            for category, summary_list in self.event_categories.items():
-                if summary in summary_list:
-                    return category
-            return "others"
-
         date_index = pl.DataFrame(
             {
                 "date": pl.date_range(
@@ -114,8 +125,7 @@ class GoogleCalenderExporter:
 
         # 各カテゴリごとの所要時間の合計を日単位でまとめたデータフレームに成形
         df = (
-            df.with_columns(pl.col("event").apply(event_map_category).alias("category"))
-            .groupby("date", "category")
+            df.groupby("date", "category")
             .agg(pl.col("duration").sum())
             .with_columns(
                 (pl.col("duration") + pl.lit(datetime(2000, 1, 1))).dt.strftime("%H:%M")
