@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import polars as pl
@@ -26,15 +26,21 @@ class GoogleCalenderExporter:
 
     @property
     def start_month(self) -> datetime:
-        return datetime(self.year, self.month, 1, tzinfo=timezone.utc)
+        """
+        指定した年月の始まり
+        """
+        return datetime(self.year, self.month, 1, tzinfo=timezone(timedelta(hours=9)))
 
     @property
     def end_month(self) -> datetime:
+        """
+        指定した年月の終わり（＝翌月の始まり）
+        """
         if self.month != 12:
             year, month = self.year, self.month + 1
         else:
             year, month = self.year + 1, 1
-        return datetime(year, month, 1, tzinfo=timezone.utc)
+        return datetime(year, month, 1, tzinfo=timezone(timedelta(hours=9)))
 
     def event_categories_df(self) -> pl.DataFrame:
         """
