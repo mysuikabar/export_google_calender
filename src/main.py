@@ -24,11 +24,9 @@ def main(year, month):
     formatted_events_df = exporter.export_formatted_events_dataframe()
     events_without_category_df = exporter.export_events_without_category_dataframe()
 
-    formatted_events_df.write_csv(
-        Path(__file__).parent / "output/formatted_events_df.csv"
-    )
+    formatted_events_df.write_csv(Path(__file__).parent / "output/formatted_events.csv")
     events_without_category_df.write_csv(
-        Path(__file__).parent / "output/events_without_category_df.csv"
+        Path(__file__).parent / "output/events_without_category.csv"
     )
 
 
